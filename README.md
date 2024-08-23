@@ -15,6 +15,10 @@ This is a React-based chess game featuring a customizable timer, move history, a
 - **Resignation**: Players can resign, conceding the game to the opponent.
 - **Reset Game**: Resets the board and timer to start a new game.
 
+## Live Demo
+
+You can view the live project here: [Chess Game Live Demo](https://shipmnts-task-ivory.vercel.app/)
+
 ## Getting Started
 
 ### Prerequisites
