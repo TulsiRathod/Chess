@@ -1,4 +1,43 @@
-import React, { useState} from 'react';
+import React, { useState, useEffect } from 'react';
+
+function TimeSettingsModal({ show, onClose, onSave }) {
+  const [timeInMinutes, setTimeInMinutes] = useState('');
+  const [incrementInSeconds, setIncrementInSeconds] = useState('');
+
+  const handleSubmit = () => {
+    if (timeInMinutes && incrementInSeconds) {
+      onSave(parseInt(timeInMinutes, 10), parseInt(incrementInSeconds, 10));
+    }
+  };
+
+  if (!show) return null;
+
+  return (
+    <div className="modal">
+      <div className="modal-content">
+        <h2>Set Game Time</h2>
+        <div>
+          <label>Total Time (minutes): </label>
+          <input
+            type="number"
+            value={timeInMinutes}
+            onChange={(e) => setTimeInMinutes(e.target.value)}
+          />
+        </div>
+        <div>
+          <label>Increment per Move (seconds): </label>
+          <input
+            type="number"
+            value={incrementInSeconds}
+            onChange={(e) => setIncrementInSeconds(e.target.value)}
+          />
+        </div>
+        <button onClick={handleSubmit}>Save</button>
+        <button onClick={onClose}>Cancel</button>
+      </div>
+    </div>
+  );
+}
 
 export default function Board() {
   const pieces = {
@@ -30,12 +69,63 @@ export default function Board() {
   const [board, setBoard] = useState(initialBoard);
   const [currentTurn, setCurrentTurn] = useState('white');
   const [selectedPiece, setSelectedPiece] = useState(null);
-  const [gameState, setGameState] = useState('stopped'); // 'stopped', 'running', 'paused'
-  const [history, setHistory] = useState([]); // Store board states to enable undo
+  const [gameState, setGameState] = useState('stopped');
+  const [history, setHistory] = useState([]);
+  const [whiteTime, setWhiteTime] = useState(0);
+  const [blackTime, setBlackTime] = useState(0);
+  const [timeIncrement, setTimeIncrement] = useState(0);
+  const [intervalId, setIntervalId] = useState(null);
+  const [showModal, setShowModal] = useState(true);
+  const [winner, setWinner] = useState(null);
+
+  const startTimer = (turn) => {
+    if (intervalId) clearInterval(intervalId);
+  
+    const id = setInterval(() => {
+      if (turn === 'white') {
+        setWhiteTime(prevTime => {
+          const newTime = Math.max(prevTime - 1, 0);
+          if (newTime === 0) {
+            clearInterval(id);
+            setWinner('black');
+            setGameState('stopped');
+          }
+          return newTime;
+        });
+      } else {
+        setBlackTime(prevTime => {
+          const newTime = Math.max(prevTime - 1, 0);
+          if (newTime === 0) {
+            clearInterval(id);
+            setWinner('white');
+            setGameState('stopped');
+          }
+          return newTime;
+        });
+      }
+    }, 1000);
+  
+    setIntervalId(id);
+  };
+  
+
+  const stopTimer = () => {
+    if (intervalId) clearInterval(intervalId);
+  };
+
+  const handleSaveTimeSettings = (timeInMinutes, incrementInSeconds) => {
+    const timeInSeconds = timeInMinutes * 60;
+    setWhiteTime(timeInSeconds);
+    setBlackTime(timeInSeconds);
+    setTimeIncrement(incrementInSeconds);
+    setGameState('running');
+    setShowModal(false);
+    startTimer('white');
+  };
 
   const handleSquareClick = (rowIndex, colIndex) => {
-    if (gameState !== 'running') return;
-
+    if (gameState !== 'running' || winner) return;
+  
     if (selectedPiece) {
       const { row: startRow, col: startCol } = selectedPiece;
       const piece = board[startRow][startCol];
@@ -43,12 +133,24 @@ export default function Board() {
         const newBoard = board.map(row => row.split(''));
         newBoard[startRow][startCol] = ' ';
         newBoard[rowIndex][colIndex] = piece;
-        setHistory([...history, board]); // Save board state for undo
+        setHistory([...history, board]);
         setBoard(newBoard.map(row => row.join('')));
-        setCurrentTurn(currentTurn === 'white' ? 'black' : 'white');
+        checkForCheckmateOrWin(newBoard);
+        setCurrentTurn(prevTurn => {
+          stopTimer();
+          if (prevTurn === 'white') {
+            setWhiteTime(prevTime => prevTime + timeIncrement);
+            startTimer('black');
+            return 'black';
+          } else {
+            setBlackTime(prevTime => prevTime + timeIncrement);
+            startTimer('white');
+            return 'white';
+          }
+        });
         setSelectedPiece(null);
       } else {
-        setSelectedPiece(null); // Deselect if move is invalid
+        setSelectedPiece(null);
       }
     } else {
       const piece = board[rowIndex][colIndex];
@@ -60,16 +162,16 @@ export default function Board() {
       }
     }
   };
-
+  
   const handleDragStart = (event, rowIndex, colIndex) => {
-    if (gameState !== 'running') return;
+    if (gameState !== 'running' || winner) return;
 
     event.dataTransfer.setData('piece', JSON.stringify({ rowIndex, colIndex }));
     setSelectedPiece(null);
   };
 
   const handleDrop = (event, targetRow, targetCol) => {
-    if (gameState !== 'running') return;
+    if (gameState !== 'running' || winner) return;
 
     event.preventDefault();
     const data = event.dataTransfer.getData('piece');
@@ -80,9 +182,22 @@ export default function Board() {
       const newBoard = board.map(row => row.split(''));
       newBoard[rowIndex][colIndex] = ' ';
       newBoard[targetRow][targetCol] = piece;
-      setHistory([...history, board]); // Save board state for undo
+      setHistory([...history, board]);
       setBoard(newBoard.map(row => row.join('')));
-      setCurrentTurn(currentTurn === 'white' ? 'black' : 'white');
+      checkForCheckmateOrWin(newBoard);
+      setCurrentTurn(prevTurn => {
+        if (prevTurn === 'white') {
+          stopTimer();
+          setWhiteTime(prevTime => prevTime + timeIncrement);
+          startTimer('black');
+          return 'black';
+        } else {
+          stopTimer();
+          setBlackTime(prevTime => prevTime + timeIncrement);
+          startTimer('white');
+          return 'white';
+        }
+      });
     }
   };
 
@@ -92,20 +207,20 @@ export default function Board() {
 
   const isValidMove = (piece, startRow, startCol, endRow, endCol) => {
     const pieceColor = piece === piece.toUpperCase() ? 'white' : 'black';
-    if (pieceColor !== currentTurn) return false; // It's not this piece's turn
+    if (pieceColor !== currentTurn) return false;
 
     switch (piece.toLowerCase()) {
-      case 'p': // Pawn
+      case 'p':
         return validatePawnMove(piece, startRow, startCol, endRow, endCol);
-      case 'r': // Rook
+      case 'r':
         return validateRookMove(startRow, startCol, endRow, endCol);
-      case 'n': // Knight
+      case 'n':
         return validateKnightMove(startRow, startCol, endRow, endCol);
-      case 'b': // Bishop
+      case 'b':
         return validateBishopMove(startRow, startCol, endRow, endCol);
-      case 'q': // Queen
+      case 'q':
         return validateQueenMove(startRow, startCol, endRow, endCol);
-      case 'k': // King
+      case 'k':
         return validateKingMove(startRow, startCol, endRow, endCol);
       default:
         return false;
@@ -113,26 +228,26 @@ export default function Board() {
   };
 
   const validatePawnMove = (piece, startRow, startCol, endRow, endCol) => {
-    const direction = piece === 'P' ? -1 : 1; // White pawns move up (-1), black pawns move down (1)
-    const startRowIndex = piece === 'P' ? 6 : 1; // White pawns start on row 6, black on row 1
+    const direction = piece === 'P' ? -1 : 1;
+    const startRowIndex = piece === 'P' ? 6 : 1;
 
     if (startCol === endCol && board[endRow][endCol] === ' ') {
-        if (startRow + direction === endRow) return true;
-        if (startRow === startRowIndex && startRow + 2 * direction === endRow && board[startRow + direction][startCol] === ' ') return true;
+      if (startRow + direction === endRow) return true;
+      if (startRow === startRowIndex && startRow + 2 * direction === endRow && board[startRow + direction][startCol] === ' ') return true;
     }
 
     if (Math.abs(startCol - endCol) === 1 && startRow + direction === endRow) {
-        const targetPiece = board[endRow][endCol];
-        if (targetPiece !== ' ' && (piece === 'P' ? targetPiece.toLowerCase() === targetPiece : targetPiece.toUpperCase() === targetPiece)) {
-            return true;
-        }
+      const targetPiece = board[endRow][endCol];
+      if (targetPiece !== ' ' && (piece === 'P' ? targetPiece.toLowerCase() === targetPiece : targetPiece.toUpperCase() === targetPiece)) {
+        return true;
+      }
     }
 
     return false;
   };
 
   const validateRookMove = (startRow, startCol, endRow, endCol) => {
-    if (startRow !== endRow && startCol !== endCol) return false; // Must move in a straight line
+    if (startRow !== endRow && startCol !== endCol) return false;
     return isPathClear(startRow, startCol, endRow, endCol);
   };
 
@@ -143,7 +258,7 @@ export default function Board() {
   };
 
   const validateBishopMove = (startRow, startCol, endRow, endCol) => {
-    if (Math.abs(startRow - endRow) !== Math.abs(startCol - endCol)) return false; // Must move diagonally
+    if (Math.abs(startRow - endRow) !== Math.abs(startCol - endCol)) return false;
     return isPathClear(startRow, startCol, endRow, endCol);
   };
 
@@ -172,24 +287,41 @@ export default function Board() {
     return true;
   };
 
-  // Game control functions
-  const handleStart = () => {
-    setGameState('running');
-    setBoard(initialBoard);
-    setHistory([]);
-    setCurrentTurn('white');
+  const checkForCheckmateOrWin = (board) => {
+    let whiteKing = false;
+    let blackKing = false;
+
+    board.forEach(row => {
+      if (row.includes('K')) whiteKing = true;
+      if (row.includes('k')) blackKing = true;
+    });
+
+    if (!whiteKing) {
+      setWinner('black');
+      setGameState('stopped');
+      stopTimer();
+    } else if (!blackKing) {
+      setWinner('white');
+      setGameState('stopped');
+      stopTimer();
+    }
   };
 
-  const handleStop = () => {
+  const handleRestart = () => {
     setGameState('stopped');
     setSelectedPiece(null);
+    stopTimer();
+    setShowModal(true);
+    setWinner(null);
   };
 
-  const handlePause = () => {
+  const handleStopResume = () => {
     if (gameState === 'running') {
       setGameState('paused');
+      stopTimer();
     } else if (gameState === 'paused') {
       setGameState('running');
+      startTimer(currentTurn);
     }
   };
 
@@ -204,17 +336,16 @@ export default function Board() {
 
   return (
     <div>
-      <div className="turn-indicator">
-        <h2>{currentTurn.charAt(0).toUpperCase() + currentTurn.slice(1)}'s Turn</h2>
+      <TimeSettingsModal
+        show={showModal}
+        onClose={() => setShowModal(false)}
+        onSave={handleSaveTimeSettings}
+      />
+
+      <div className="black-timer">
+        <p>Black: {blackTime}s</p>
       </div>
-      <div className="controls">
-        <button onClick={handleStart} disabled={gameState === 'running'}>Start</button>
-        <button onClick={handleStop} className="stop" disabled={gameState === 'stopped'}>Stop</button>
-        <button onClick={handlePause} disabled={gameState === 'stopped'}>
-            {gameState === 'paused' ? 'Resume' : 'Pause'}
-        </button>
-        <button onClick={handleUndo} disabled={history.length === 0 || gameState !== 'running'}>Undo</button>
-        </div>
+      
       <div className="chessboard">
         {board.map((row, rowIndex) => (
           row.split('').map((piece, colIndex) => (
@@ -236,6 +367,17 @@ export default function Board() {
             </div>
           ))
         ))}
+      </div>
+
+      <div className="white-timer">
+        <p>White: {whiteTime}s</p>
+      </div>
+
+      <div className="controls">
+        {winner && <p>{winner.charAt(0).toUpperCase() + winner.slice(1)} wins!</p>}
+        <button onClick={handleRestart}>Restart</button>
+        <button onClick={handleStopResume}>{gameState === 'paused' ? 'Resume' : 'Stop'}</button>
+        <button onClick={handleUndo} disabled={history.length === 0 || gameState !== 'running'}>Undo</button>
       </div>
     </div>
   );
