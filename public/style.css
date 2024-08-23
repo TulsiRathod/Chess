@@ -1,125 +1,77 @@
-body {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  margin: 0;
-  background-color: #333;
-  color: #fff;
-}
-
-.chessboard {
-  display: grid;
-  grid-template-columns: repeat(8, 60px);
-  grid-template-rows: repeat(8, 60px);
-  gap: 0;
-  border: 2px solid #000;
-}
-
-.square {
-  width: 60px;
-  height: 60px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 24px;
-}
-
-.square.black {
-  background-color: #769656;
-}
-
-.square.white {
-  background-color: #eeeed2;
-}
-
-.square img {
-  width: 50px;
-  height: 50px;
-  cursor: pointer;
-}
-
-.selected {
-  outline: 2px solid red;
-}
-
-.controls {
-  margin: 20px 0;
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-}
-
-.controls button {
-  padding: 10px 20px;
-  font-size: 16px;
-  font-weight: bold;
-  color: #fff;
-  background-color: #4CAF50;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.controls button.stop {
-  background-color: #f44336; /* Red color for Stop button */
-}
-
-.controls button.stop:hover:not(:disabled) {
-  background-color: #e53935;
-}
-
-.controls button.stop:active:not(:disabled) {
-  background-color: #d32f2f;
-}
-
-.controls button:disabled {
-  background-color: #999;
-  cursor: not-allowed;
-}
-
-.controls button:hover:not(:disabled) {
-  background-color: #45a049;
-}
-
-.controls button:active:not(:disabled) {
-  background-color: #3e8e41;
-}
-
-.turn-indicator {
+.chess-container {
   text-align: center;
-  font-size: 24px;
-  font-weight: bold;
+  padding: 20px;
+}
+
+.chess-title {
+  font-size: 36px;
   margin-bottom: 10px;
 }
 
-.chessboard {
+.timer-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.timer {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 0 20px;
+}
+
+.turn-indicator {
+  font-size: 20px;
+  margin: 0 20px;
+}
+
+.board-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.chess-board {
   display: grid;
   grid-template-columns: repeat(8, 60px);
   grid-template-rows: repeat(8, 60px);
   gap: 0;
-  margin: 0 auto;
 }
 
-.square {
+.chess-row {
+  display: contents;
+}
+
+.chess-square {
+  width: 60px;
+  height: 60px;
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 60px;
-  height: 60px;
 }
 
-.square.white {
-  background-color: #eeeed2;
+.chess-square.white {
+  background-color: #f0d9b5;
 }
 
-.square.black {
-  background-color: #769656;
+.chess-square.black {
+  background-color: #b58863;
 }
 
-.selected {
-  outline: 2px solid red;
+.chess-piece {
+  width: 50px;
+  height: 50px;
+}
+
+.controls-container {
+  margin-top: 20px;
+}
+
+.controls-container button {
+  margin: 0 10px;
+  padding: 10px 20px;
+  font-size: 16px;
 }
 
 .modal {
@@ -129,27 +81,32 @@ body {
   transform: translate(-50%, -50%);
   background-color: white;
   padding: 20px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-  z-index: 1000;
-  color: black;
+  border-radius: 8px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
 }
 
 .modal-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  text-align: left;
 }
 
 .modal-content h2 {
-  margin-bottom: 20px;
+  margin-top: 0;
 }
 
 .modal-content div {
   margin-bottom: 10px;
 }
 
+.modal-content label {
+  display: inline-block;
+  width: 150px;
+}
+
+.modal-content input {
+  width: 100px;
+}
+
 .modal-content button {
-  margin: 5px;
-  padding: 10px 20px;
-  cursor: pointer;
+  margin-right: 10px;
+  padding: 5px 10px;
 }

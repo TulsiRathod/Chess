@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 function TimeSettingsModal({ show, onClose, onSave }) {
-  const [timeInMinutes, setTimeInMinutes] = useState('');
-  const [incrementInSeconds, setIncrementInSeconds] = useState('');
+  const [timeInMinutes, setTimeInMinutes] = useState('5');
+  const [incrementInSeconds, setIncrementInSeconds] = useState('1');
 
   const handleSubmit = () => {
     if (timeInMinutes && incrementInSeconds) {
@@ -41,18 +41,18 @@ function TimeSettingsModal({ show, onClose, onSave }) {
 
 export default function Board() {
   const pieces = {
-    'r': 'BlackRook.png',
-    'n': 'BlackKnight.png',
-    'b': 'BlackBishop.png',
-    'q': 'BlackQueen.png',
-    'k': 'BlackKing.png',
-    'p': 'BlackPawn.png',
-    'R': 'WhiteRook.png',
-    'N': 'WhiteKnight.png',
-    'B': 'WhiteBishop.png',
-    'Q': 'WhiteQueen.png',
-    'K': 'WhiteKing.png',
-    'P': 'WhitePawn.png'
+    r: 'BlackRook.png',
+    n: 'BlackKnight.png',
+    b: 'BlackBishop.png',
+    q: 'BlackQueen.png',
+    k: 'BlackKing.png',
+    p: 'BlackPawn.png',
+    R: 'WhiteRook.png',
+    N: 'WhiteKnight.png',
+    B: 'WhiteBishop.png',
+    Q: 'WhiteQueen.png',
+    K: 'WhiteKing.png',
+    P: 'WhitePawn.png',
   };
 
   const initialBoard = [
@@ -63,7 +63,7 @@ export default function Board() {
     '        ',
     '        ',
     'PPPPPPPP',
-    'RNBQKBNR'
+    'RNBQKBNR',
   ];
 
   const [board, setBoard] = useState(initialBoard);
@@ -80,10 +80,10 @@ export default function Board() {
 
   const startTimer = (turn) => {
     if (intervalId) clearInterval(intervalId);
-  
+
     const id = setInterval(() => {
       if (turn === 'white') {
-        setWhiteTime(prevTime => {
+        setWhiteTime((prevTime) => {
           const newTime = Math.max(prevTime - 1, 0);
           if (newTime === 0) {
             clearInterval(id);
@@ -93,7 +93,7 @@ export default function Board() {
           return newTime;
         });
       } else {
-        setBlackTime(prevTime => {
+        setBlackTime((prevTime) => {
           const newTime = Math.max(prevTime - 1, 0);
           if (newTime === 0) {
             clearInterval(id);
@@ -104,10 +104,9 @@ export default function Board() {
         });
       }
     }, 1000);
-  
+
     setIntervalId(id);
   };
-  
 
   const stopTimer = () => {
     if (intervalId) clearInterval(intervalId);
@@ -130,20 +129,22 @@ export default function Board() {
       const { row: startRow, col: startCol } = selectedPiece;
       const piece = board[startRow][startCol];
       if (isValidMove(piece, startRow, startCol, rowIndex, colIndex)) {
-        const newBoard = board.map(row => row.split(''));
+        const newBoard = board.map((row) => row.split(''));
         newBoard[startRow][startCol] = ' ';
         newBoard[rowIndex][colIndex] = piece;
         setHistory([...history, board]);
-        setBoard(newBoard.map(row => row.join('')));
+        setBoard(newBoard.map((row) => row.join('')));
+        
         checkForCheckmateOrWin(newBoard);
-        setCurrentTurn(prevTurn => {
+        
+        setCurrentTurn((prevTurn) => {
           stopTimer();
           if (prevTurn === 'white') {
-            setWhiteTime(prevTime => prevTime + timeIncrement);
+            setWhiteTime((prevTime) => prevTime + timeIncrement);
             startTimer('black');
             return 'black';
           } else {
-            setBlackTime(prevTime => prevTime + timeIncrement);
+            setBlackTime((prevTime) => prevTime + timeIncrement);
             startTimer('white');
             return 'white';
           }
@@ -163,6 +164,7 @@ export default function Board() {
     }
   };
   
+
   const handleDragStart = (event, rowIndex, colIndex) => {
     if (gameState !== 'running' || winner) return;
 
@@ -179,21 +181,21 @@ export default function Board() {
 
     const piece = board[rowIndex][colIndex];
     if (isValidMove(piece, rowIndex, colIndex, targetRow, targetCol)) {
-      const newBoard = board.map(row => row.split(''));
+      const newBoard = board.map((row) => row.split(''));
       newBoard[rowIndex][colIndex] = ' ';
       newBoard[targetRow][targetCol] = piece;
       setHistory([...history, board]);
-      setBoard(newBoard.map(row => row.join('')));
+      setBoard(newBoard.map((row) => row.join('')));
       checkForCheckmateOrWin(newBoard);
-      setCurrentTurn(prevTurn => {
+      setCurrentTurn((prevTurn) => {
         if (prevTurn === 'white') {
           stopTimer();
-          setWhiteTime(prevTime => prevTime + timeIncrement);
+          setWhiteTime((prevTime) => prevTime + timeIncrement);
           startTimer('black');
           return 'black';
         } else {
           stopTimer();
-          setBlackTime(prevTime => prevTime + timeIncrement);
+          setBlackTime((prevTime) => prevTime + timeIncrement);
           startTimer('white');
           return 'white';
         }
@@ -207,8 +209,15 @@ export default function Board() {
 
   const isValidMove = (piece, startRow, startCol, endRow, endCol) => {
     const pieceColor = piece === piece.toUpperCase() ? 'white' : 'black';
-    if (pieceColor !== currentTurn) return false;
-
+    
+    const targetPiece = board[endRow][endCol];
+    if (targetPiece !== ' ') {
+      const targetPieceColor = targetPiece === targetPiece.toUpperCase() ? 'white' : 'black';
+      if (pieceColor === targetPieceColor) {
+        return false; 
+      }
+    }
+  
     switch (piece.toLowerCase()) {
       case 'p':
         return validatePawnMove(piece, startRow, startCol, endRow, endCol);
@@ -226,6 +235,7 @@ export default function Board() {
         return false;
     }
   };
+  
 
   const validatePawnMove = (piece, startRow, startCol, endRow, endCol) => {
     const direction = piece === 'P' ? -1 : 1;
@@ -233,37 +243,73 @@ export default function Board() {
 
     if (startCol === endCol && board[endRow][endCol] === ' ') {
       if (startRow + direction === endRow) return true;
-      if (startRow === startRowIndex && startRow + 2 * direction === endRow && board[startRow + direction][startCol] === ' ') return true;
+      if (
+        startRow === startRowIndex &&
+        startRow + 2 * direction === endRow &&
+        board[startRow + direction][startCol] === ' '
+      )
+        return true;
     }
 
-    if (Math.abs(startCol - endCol) === 1 && startRow + direction === endRow) {
-      const targetPiece = board[endRow][endCol];
-      if (targetPiece !== ' ' && (piece === 'P' ? targetPiece.toLowerCase() === targetPiece : targetPiece.toUpperCase() === targetPiece)) {
-        return true;
-      }
+    if (
+      Math.abs(startCol - endCol) === 1 &&
+      startRow + direction === endRow &&
+      board[endRow][endCol] !== ' '
+    ) {
+      return true;
     }
 
     return false;
   };
 
   const validateRookMove = (startRow, startCol, endRow, endCol) => {
-    if (startRow !== endRow && startCol !== endCol) return false;
-    return isPathClear(startRow, startCol, endRow, endCol);
+    if (startRow === endRow) {
+      const step = startCol < endCol ? 1 : -1;
+      for (let i = startCol + step; i !== endCol; i += step) {
+        if (board[startRow][i] !== ' ') return false;
+      }
+      return true;
+    }
+    if (startCol === endCol) {
+      const step = startRow < endRow ? 1 : -1;
+      for (let i = startRow + step; i !== endRow; i += step) {
+        if (board[i][startCol] !== ' ') return false;
+      }
+      return true;
+    }
+    return false;
   };
 
   const validateKnightMove = (startRow, startCol, endRow, endCol) => {
     const rowDiff = Math.abs(startRow - endRow);
     const colDiff = Math.abs(startCol - endCol);
-    return (rowDiff === 2 && colDiff === 1) || (rowDiff === 1 && colDiff === 2);
+    return (
+      (rowDiff === 2 && colDiff === 1) || (rowDiff === 1 && colDiff === 2)
+    );
   };
 
   const validateBishopMove = (startRow, startCol, endRow, endCol) => {
-    if (Math.abs(startRow - endRow) !== Math.abs(startCol - endCol)) return false;
-    return isPathClear(startRow, startCol, endRow, endCol);
+    const rowDiff = Math.abs(startRow - endRow);
+    const colDiff = Math.abs(startCol - endCol);
+    if (rowDiff !== colDiff) return false;
+
+    const rowStep = startRow < endRow ? 1 : -1;
+    const colStep = startCol < endCol ? 1 : -1;
+    for (
+      let i = startRow + rowStep, j = startCol + colStep;
+      i !== endRow;
+      i += rowStep, j += colStep
+    ) {
+      if (board[i][j] !== ' ') return false;
+    }
+    return true;
   };
 
   const validateQueenMove = (startRow, startCol, endRow, endCol) => {
-    return validateRookMove(startRow, startCol, endRow, endCol) || validateBishopMove(startRow, startCol, endRow, endCol);
+    return (
+      validateRookMove(startRow, startCol, endRow, endCol) ||
+      validateBishopMove(startRow, startCol, endRow, endCol)
+    );
   };
 
   const validateKingMove = (startRow, startCol, endRow, endCol) => {
@@ -272,113 +318,156 @@ export default function Board() {
     return rowDiff <= 1 && colDiff <= 1;
   };
 
-  const isPathClear = (startRow, startCol, endRow, endCol) => {
-    let rowStep = startRow < endRow ? 1 : (startRow > endRow ? -1 : 0);
-    let colStep = startCol < endCol ? 1 : (startCol > endCol ? -1 : 0);
-
-    let row = startRow + rowStep;
-    let col = startCol + colStep;
-    
-    while (row !== endRow || col !== endCol) {
-      if (board[row][col] !== ' ') return false;
-      row += rowStep;
-      col += colStep;
+  const checkForCheckmateOrWin = (newBoard) => {
+    let whiteKingExists = false;
+    let blackKingExists = false;
+  
+    for (let row of newBoard) {
+      for (let square of row) {
+        if (square === 'K') whiteKingExists = true;
+        if (square === 'k') blackKingExists = true;
+      }
     }
-    return true;
-  };
-
-  const checkForCheckmateOrWin = (board) => {
-    let whiteKing = false;
-    let blackKing = false;
-
-    board.forEach(row => {
-      if (row.includes('K')) whiteKing = true;
-      if (row.includes('k')) blackKing = true;
-    });
-
-    if (!whiteKing) {
+  
+    if (!whiteKingExists) {
       setWinner('black');
       setGameState('stopped');
       stopTimer();
-    } else if (!blackKing) {
+      alert('Black wins! The white king has been captured.');
+      handleReset();
+    } else if (!blackKingExists) {
       setWinner('white');
       setGameState('stopped');
       stopTimer();
+      alert('White wins! The black king has been captured.');
+      handleReset();
+    } else {
+      const currentPlayer = currentTurn === 'white' ? 'white' : 'black';
+      if (isStalemate(newBoard, currentPlayer)) {
+        setWinner('draw');
+        setGameState('stopped');
+        stopTimer();
+        alert('Stalemate! The game is a draw.');
+        handleReset();
+      }
     }
   };
-
-  const handleRestart = () => {
-    setGameState('stopped');
-    setSelectedPiece(null);
-    stopTimer();
-    setShowModal(true);
-    setWinner(null);
-  };
-
-  const handleStopResume = () => {
-    if (gameState === 'running') {
-      setGameState('paused');
-      stopTimer();
-    } else if (gameState === 'paused') {
-      setGameState('running');
-      startTimer(currentTurn);
+  
+  const isStalemate = (board, player) => {
+    const isPlayerWhite = player === 'white';
+  
+    for (let rowIndex = 0; rowIndex < 8; rowIndex++) {
+      for (let colIndex = 0; colIndex < 8; colIndex++) {
+        const piece = board[rowIndex][colIndex];
+        const pieceColor = piece === piece.toUpperCase() ? 'white' : 'black';
+  
+        if (piece !== ' ' && pieceColor === player) {
+          for (let targetRow = 0; targetRow < 8; targetRow++) {
+            for (let targetCol = 0; targetCol < 8; targetCol++) {
+              if (isValidMove(piece, rowIndex, colIndex, targetRow, targetCol)) {
+                return false; // Found a valid move, so not stalemate
+              }
+            }
+          }
+        }
+      }
     }
+  
+    return true; // No valid moves found, so stalemate
   };
+  
+  
 
   const handleUndo = () => {
     if (history.length > 0) {
-      const previousBoard = history.pop();
+      const previousBoard = history[history.length - 1];
       setBoard(previousBoard);
-      setHistory([...history]);
-      setCurrentTurn(currentTurn === 'white' ? 'black' : 'white');
+      setHistory(history.slice(0, -1));
+      setCurrentTurn((prevTurn) => (prevTurn === 'white' ? 'black' : 'white'));
     }
   };
 
+  const handleReset = () => {
+    setBoard(initialBoard);
+    setCurrentTurn('white');
+    setSelectedPiece(null);
+    setGameState('stopped');
+    setHistory([]);
+    setWhiteTime(0);
+    setBlackTime(0);
+    setWinner(null);
+    stopTimer();
+    setShowModal(true);
+  };
+  
+
+  const handleResign = () => {
+    setWinner(currentTurn === 'white' ? 'black' : 'white');
+    setGameState('stopped');
+    stopTimer();
+  };
+
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+  };
+
   return (
-    <div>
+    <div className="chess-container">
+      <h1 className="chess-title">Chess Game</h1>
+      
+      <div className="timer-container">
+        <div className="timer white-timer">White : {formatTime(whiteTime)}</div>
+        <div className="turn-indicator">
+          {winner ? `Winner: ${winner}` : `${currentTurn}'s Turn`}
+        </div>
+        <div className="timer black-timer">Black : {formatTime(blackTime)}</div>
+      </div>
+
+      <div className="board-container">
+        <div className="chess-board">
+          {board.map((row, rowIndex) => (
+            <div key={rowIndex} className="chess-row">
+              {row.split('').map((piece, colIndex) => (
+                <div
+                  key={colIndex}
+                  className={`chess-square ${
+                    (rowIndex + colIndex) % 2 === 0 ? 'white' : 'black'
+                  }`}
+                  onClick={() => handleSquareClick(rowIndex, colIndex)}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
+                >
+                  {piece !== ' ' && (
+                    <img
+                      src={`images/${pieces[piece]}`}
+                      alt={piece}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, rowIndex, colIndex)}
+                      className="chess-piece"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="controls-container">
+        <button onClick={handleUndo} disabled={history.length === 0}>
+          Undo
+        </button>
+        <button onClick={handleReset}>Reset</button>
+        <button onClick={handleResign}>Resign</button>
+      </div>
+
       <TimeSettingsModal
         show={showModal}
         onClose={() => setShowModal(false)}
         onSave={handleSaveTimeSettings}
       />
-
-      <div className="black-timer">
-        <p>Black: {blackTime}s</p>
-      </div>
-      
-      <div className="chessboard">
-        {board.map((row, rowIndex) => (
-          row.split('').map((piece, colIndex) => (
-            <div
-              key={`${rowIndex}-${colIndex}`}
-              className={`square ${(rowIndex + colIndex) % 2 === 0 ? 'white' : 'black'} ${selectedPiece && selectedPiece.row === rowIndex && selectedPiece.col === colIndex ? 'selected' : ''}`}
-              onClick={() => handleSquareClick(rowIndex, colIndex)}
-              onDrop={(event) => handleDrop(event, rowIndex, colIndex)}
-              onDragOver={handleDragOver}
-            >
-              {piece !== ' ' && (
-                <img
-                  src={`images/${pieces[piece]}`}
-                  alt={piece}
-                  draggable={gameState === 'running'}
-                  onDragStart={(event) => handleDragStart(event, rowIndex, colIndex)}
-                />
-              )}
-            </div>
-          ))
-        ))}
-      </div>
-
-      <div className="white-timer">
-        <p>White: {whiteTime}s</p>
-      </div>
-
-      <div className="controls">
-        {winner && <p>{winner.charAt(0).toUpperCase() + winner.slice(1)} wins!</p>}
-        <button onClick={handleRestart}>Restart</button>
-        <button onClick={handleStopResume}>{gameState === 'paused' ? 'Resume' : 'Stop'}</button>
-        <button onClick={handleUndo} disabled={history.length === 0 || gameState !== 'running'}>Undo</button>
-      </div>
     </div>
   );
 }
